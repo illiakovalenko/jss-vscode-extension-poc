@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "iki-poc.helloWorld",
-        "title": "iki poc - hello world"
+        "command": "iki-poc.jss",
+        "title": "JSS"
       }
     ]
   },
