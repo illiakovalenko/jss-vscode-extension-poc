@@ -1,8 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { window, workspace, commands, ExtensionContext } from "vscode";
+import fs from "fs";
 import path from "path";
-import { setup } from "@sitecore-jss/sitecore-jss-dev-tools";
 
 // https://miro.com/app/board/uXjVM17z-bk=/
 
@@ -29,6 +29,10 @@ export function activate(context: ExtensionContext) {
         label: "jss setup",
         description: "",
         exec: async (context) => {
+          const config: { sitecore: { [key: string]: unknown } } = {
+            sitecore: {},
+          };
+
           const instanceType = await window.showQuickPick(
             ["Local machine", "Network share"],
             {
@@ -38,10 +42,8 @@ export function activate(context: ExtensionContext) {
             }
           );
 
-          let instancePath;
-
           if (instanceType === "Local machine") {
-            instancePath = await window.showInputBox({
+            config.sitecore.instancePath = await window.showInputBox({
               placeHolder: "c:\\inetpub\\wwwroot\\my.siteco.re",
               prompt: "Path to the Sitecore folder",
               validateInput(value) {
@@ -53,7 +55,7 @@ export function activate(context: ExtensionContext) {
             });
           }
 
-          const layoutServiceHost = await window.showInputBox({
+          config.sitecore.layoutServiceHost = await window.showInputBox({
             placeHolder: "http://myapp.local.siteco.re",
             prompt:
               "Sitecore hostname (see /sitecore/config; ensure added to hosts)",
@@ -65,9 +67,9 @@ export function activate(context: ExtensionContext) {
             ignoreFocusOut: true,
           });
 
-          const deployUrl = await window.showInputBox({
-            placeHolder: `${layoutServiceHost}/sitecore/api/jss/import`,
-            value: `${layoutServiceHost}/sitecore/api/jss/import`,
+          config.sitecore.deployUrl = await window.showInputBox({
+            placeHolder: `${config.sitecore.layoutServiceHost}/sitecore/api/jss/import`,
+            value: `${config.sitecore.layoutServiceHost}/sitecore/api/jss/import`,
             prompt: "Sitecore import service URL",
             validateInput(value) {
               if (!/^https?:\/\/(.*)/.test(value)) {
@@ -77,7 +79,7 @@ export function activate(context: ExtensionContext) {
             ignoreFocusOut: true,
           });
 
-          const apiKey = await window.showInputBox({
+          config.sitecore.apiKey = await window.showInputBox({
             placeHolder: `{110D559F-DEA5-42EA-9C1C-8A5DF7E70EF9}`,
             prompt: "Sitecore API Key (ID of API key item)",
             validateInput(value) {
@@ -92,7 +94,7 @@ export function activate(context: ExtensionContext) {
             ignoreFocusOut: true,
           });
 
-          let deploySecret = await window.showInputBox({
+          config.sitecore.deploySecret = await window.showInputBox({
             prompt:
               "Please enter your deployment secret (32+ random chars; or press enter to generate one)",
             validateInput(value) {
@@ -103,8 +105,8 @@ export function activate(context: ExtensionContext) {
             ignoreFocusOut: true,
           });
 
-          if (!deploySecret) {
-            deploySecret =
+          if (!config.sitecore.deploySecret) {
+            config.sitecore.deploySecret =
               Math.random().toString(36).substring(2, 15) +
               Math.random().toString(36).substring(2, 15) +
               Math.random().toString(36).substring(2, 15) +
@@ -113,13 +115,7 @@ export function activate(context: ExtensionContext) {
 
           const configFile = path.join(__dirname, "..", "scjssconfig.json");
 
-          setup(false, path.join(__dirname, "..", "scjssconfig.json"), {
-            layoutServiceHost,
-            apiKey,
-            deploySecret,
-            deployUrl,
-            instancePath,
-          });
+          fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
 
           workspace.openTextDocument(configFile).then((doc) => {
             window.showTextDocument(doc);
@@ -171,5 +167,4 @@ export function activate(context: ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
-
 
